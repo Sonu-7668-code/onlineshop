@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: catalog_db
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d catalog_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  catalog:
+    build: ./services/catalog
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:devpass@postgres:5432/catalog_db
+    ports: ["8001:8000"]
+    volumes: ["./services/catalog/app:/app/app"]   # code edit karte hi reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
